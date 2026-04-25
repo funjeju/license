@@ -10,6 +10,7 @@ import Sidebar from '@/components/layout/Sidebar';
 import ChatPanel from '@/components/chat/ChatPanel';
 import FormPreview from '@/components/preview/FormPreview';
 import FieldList from '@/components/preview/FieldList';
+import TrademarkPanel from '@/components/trademark/TrademarkPanel';
 import { usePathname } from 'next/navigation';
 import Link from 'next/link';
 import { Wand2 } from 'lucide-react';
@@ -31,11 +32,14 @@ export default function ChatWorkspacePage() {
 
   const [registration, setRegistration] = useState<Registration | null>(null);
   const [loading, setLoading] = useState(true);
+  const [authToken, setAuthToken] = useState('');
   const fieldRefs = useRef<Map<string, HTMLDivElement>>(new Map());
 
   useEffect(() => {
     const auth = getClientAuth();
     if (!auth.currentUser) { router.push('/login'); return; }
+
+    auth.currentUser.getIdToken().then(setAuthToken).catch(() => {});
 
     const db = getClientDb();
     const unsub = onSnapshot(
@@ -101,14 +105,29 @@ export default function ChatWorkspacePage() {
         )}
       </div>
 
-      {/* FieldList — ≥1440px에서만 표시 */}
-      <div className="hidden 2xl:flex w-[220px] flex-shrink-0 flex-col overflow-hidden">
-        <FieldList
-          ipType={registration.type}
-          fields={registration.extractedFields}
-          progress={registration.progress}
-          fieldRefs={fieldRefs}
-        />
+      {/* Right panel — ≥1440px에서만 표시 */}
+      <div className="hidden 2xl:flex w-[280px] flex-shrink-0 flex-col overflow-hidden border-l border-neutral-200">
+        {registration.type === 'trademark' ? (
+          <div className="flex-1 overflow-y-auto p-3">
+            <TrademarkPanel
+              markName={String(registration.extractedFields.markName ?? '')}
+              markDescription={String(registration.extractedFields.markDescription ?? '')}
+              extractedNiceClasses={
+                Array.isArray(registration.extractedFields.niceClasses)
+                  ? (registration.extractedFields.niceClasses as string[])
+                  : []
+              }
+              authToken={authToken}
+            />
+          </div>
+        ) : (
+          <FieldList
+            ipType={registration.type}
+            fields={registration.extractedFields}
+            progress={registration.progress}
+            fieldRefs={fieldRefs}
+          />
+        )}
       </div>
     </div>
   );
