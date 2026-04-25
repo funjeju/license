@@ -1,6 +1,9 @@
 'use client';
 
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+import { signOut } from 'firebase/auth';
+import { getClientAuth } from '@/lib/firebase/client';
 import { cn } from '@/lib/utils';
 import {
   Home,
@@ -36,12 +39,6 @@ const ipTypes: NavItem[] = [
   { label: '상표', href: '/register/new?type=trademark', icon: Tag },
   { label: '디자인권', href: '/register/new?type=design', icon: Layers },
   { label: '특허', href: '/register/new?type=patent', icon: Lightbulb },
-];
-
-const tools: NavItem[] = [
-  { label: '도안 스튜디오', href: '#', icon: Image, disabled: true },
-  { label: '서류 패키지', href: '#', icon: Package, disabled: true },
-  { label: '가이드 & FAQ', href: '/guide', icon: BookOpen },
 ];
 
 const bottom: NavItem[] = [
@@ -92,11 +89,16 @@ function NavItemRow({
 }
 
 export default function Sidebar({ currentPath, onClose }: SidebarProps) {
-  // Extract registrationId if we're inside /register/[id]/...
+  const router = useRouter();
+
   const regMatch = currentPath.match(/^\/register\/([^/]+)\//);
   const registrationId = regMatch?.[1] ?? null;
 
-  const isPatentPath = currentPath.includes('/claims');
+  async function handleLogout() {
+    await signOut(getClientAuth());
+    document.cookie = 'session=; path=/; max-age=0';
+    router.push('/login');
+  }
 
   const dynamicTools: NavItem[] = [
     {
@@ -119,7 +121,6 @@ export default function Sidebar({ currentPath, onClose }: SidebarProps) {
     },
     { label: '가이드 & FAQ', href: '/guide', icon: BookOpen },
   ];
-  void isPatentPath;
 
   return (
     <aside className="w-60 h-screen bg-neutral-50 border-r border-neutral-200 flex flex-col overflow-y-auto">
@@ -168,7 +169,7 @@ export default function Sidebar({ currentPath, onClose }: SidebarProps) {
             <NavItemRow key={item.href + item.label} item={item} currentPath={currentPath} onClick={onClose} />
           ))}
           <button
-            onClick={() => {/* logout handler added later */}}
+            onClick={handleLogout}
             className="flex items-center gap-2 h-10 px-4 rounded-md text-label text-neutral-700 hover:bg-neutral-100 transition-colors duration-150 w-full text-left"
           >
             <LogOut className="w-4 h-4 flex-shrink-0" />

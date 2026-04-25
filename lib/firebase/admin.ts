@@ -5,12 +5,13 @@ function getAdminApp(): admin.app.App {
     return admin.app();
   }
 
-  const privateKey = process.env.FIREBASE_ADMIN_PRIVATE_KEY?.replace(/\\n/g, '\n');
+  const rawKey = process.env.FIREBASE_ADMIN_PRIVATE_KEY ?? process.env.FIREBASE_PRIVATE_KEY;
+  const privateKey = rawKey?.replace(/\\n/g, '\n');
 
   return admin.initializeApp({
     credential: admin.credential.cert({
-      projectId:   process.env.FIREBASE_ADMIN_PROJECT_ID!,
-      clientEmail: process.env.FIREBASE_ADMIN_CLIENT_EMAIL!,
+      projectId:   (process.env.FIREBASE_ADMIN_PROJECT_ID ?? process.env.FIREBASE_PROJECT_ID)!,
+      clientEmail: (process.env.FIREBASE_ADMIN_CLIENT_EMAIL ?? process.env.FIREBASE_CLIENT_EMAIL)!,
       privateKey,
     }),
   });
