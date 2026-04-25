@@ -6,7 +6,8 @@ import { FieldValue } from 'firebase-admin/firestore';
 export async function POST(req: NextRequest) {
   const authHeader = req.headers.get('Authorization');
   if (!authHeader?.startsWith('Bearer ')) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    console.error('[classify] missing/invalid Authorization header. header value:', authHeader);
+    return NextResponse.json({ error: 'Unauthorized', detail: 'no bearer token' }, { status: 401 });
   }
 
   let uid: string;
