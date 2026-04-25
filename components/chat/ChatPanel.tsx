@@ -47,18 +47,20 @@ export default function ChatPanel({ registrationId, projectTitle, ipType, authTo
   const [input, setInput] = useState('');
   const msgTimestamps = useRef<Map<string, Date>>(new Map());
 
-  const { messages, append, isLoading, error } = useChat({
+  const { messages, sendMessage, status, error } = useChat({
     api: '/api/chat',
     body: { registrationId },
     headers: { Authorization: `Bearer ${authToken}` },
     onFinish: () => {
       onFieldsUpdated?.();
     },
-  });
+  } as Parameters<typeof useChat>[0]);
+
+  const isStreaming = status === 'streaming' || status === 'submitted';
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages, isLoading]);
+  }, [messages, isStreaming]);
 
   function adjustTextarea() {
     const el = textareaRef.current;
@@ -73,9 +75,9 @@ export default function ChatPanel({ registrationId, projectTitle, ipType, authTo
 
   function handleSend() {
     const text = input.trim();
-    if (!text || isLoading) return;
+    if (!text || isStreaming) return;
     setInput('');
-    append({ role: 'user', content: text });
+    sendMessage({ text });
   }
 
   return (
@@ -143,7 +145,7 @@ export default function ChatPanel({ registrationId, projectTitle, ipType, authTo
           );
         })}
 
-        {isLoading && (
+        {isStreaming && (
           <div className="flex justify-start">
             <div className="w-[22px] h-[22px] rounded-full bg-royal-50 border border-royal-100 flex items-center justify-center mr-2 flex-shrink-0 mt-1">
               <span className="text-[11px] font-medium text-royal">AI</span>
@@ -185,7 +187,7 @@ export default function ChatPanel({ registrationId, projectTitle, ipType, authTo
           <button
             type="button"
             onClick={handleSend}
-            disabled={!input.trim() || isLoading}
+            disabled={!input.trim() || isStreaming}
             className="w-9 h-9 bg-royal rounded-md flex items-center justify-center flex-shrink-0 hover:bg-royal-600 transition-colors disabled:opacity-40 active:scale-[0.98]"
             aria-label="전송"
           >
