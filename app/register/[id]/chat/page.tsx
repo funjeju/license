@@ -110,6 +110,7 @@ export default function ChatWorkspacePage() {
         {registration.type === 'trademark' ? (
           <div className="flex-1 overflow-y-auto p-3">
             <TrademarkPanel
+              registrationId={registrationId}
               markName={String(registration.extractedFields.markName ?? '')}
               markDescription={String(registration.extractedFields.markDescription ?? '')}
               extractedNiceClasses={

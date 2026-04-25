@@ -5,10 +5,12 @@ import { cn } from '@/lib/utils';
 import NiceClassPanel from './NiceClassPanel';
 import KiprisResults from './KiprisResults';
 import GoodsDraft from './GoodsDraft';
+import ImageSimilarity from './ImageSimilarity';
 
-type TrademarkTab = 'nice' | 'search' | 'goods';
+type TrademarkTab = 'nice' | 'search' | 'image' | 'goods';
 
 interface TrademarkPanelProps {
+  registrationId: string;
   markName: string;
   markDescription?: string;
   extractedNiceClasses?: string[];
@@ -18,11 +20,13 @@ interface TrademarkPanelProps {
 
 const TABS: { value: TrademarkTab; label: string }[] = [
   { value: 'nice', label: '니스 분류' },
-  { value: 'search', label: '선행 조회' },
+  { value: 'search', label: '텍스트 조회' },
+  { value: 'image', label: '도형 유사도' },
   { value: 'goods', label: '지정상품' },
 ];
 
 export default function TrademarkPanel({
+  registrationId,
   markName,
   markDescription,
   extractedNiceClasses = [],
@@ -48,13 +52,13 @@ export default function TrademarkPanel({
       </div>
 
       {/* Tab bar */}
-      <div className="flex border-b border-neutral-200 px-3">
+      <div className="flex border-b border-neutral-200 px-2 overflow-x-auto">
         {TABS.map((t) => (
           <button
             key={t.value}
             onClick={() => setTab(t.value)}
             className={cn(
-              'px-3 py-2 text-caption border-b-2 transition-colors',
+              'px-2.5 py-2 text-caption border-b-2 transition-colors whitespace-nowrap',
               tab === t.value
                 ? 'border-royal text-royal font-medium'
                 : 'border-transparent text-neutral-500 hover:text-neutral-700',
@@ -80,6 +84,14 @@ export default function TrademarkPanel({
         {tab === 'search' && (
           <KiprisResults
             markName={markName}
+            niceClasses={selectedClasses}
+            authToken={authToken}
+          />
+        )}
+
+        {tab === 'image' && (
+          <ImageSimilarity
+            registrationId={registrationId}
             niceClasses={selectedClasses}
             authToken={authToken}
           />
