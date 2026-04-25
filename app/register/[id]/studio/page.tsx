@@ -9,6 +9,8 @@ import { getClientAuth, getClientDb } from '@/lib/firebase/client';
 import { usePathname } from 'next/navigation';
 import Sidebar from '@/components/layout/Sidebar';
 import GenerateMode from '@/components/studio/GenerateMode';
+import UploadMode from '@/components/studio/UploadMode';
+import HybridMode from '@/components/studio/HybridMode';
 import { cn } from '@/lib/utils';
 import { ArrowLeft } from 'lucide-react';
 import Link from 'next/link';
@@ -127,23 +129,11 @@ export default function StudioPage() {
           )}
 
           {tab === 'upload' && (
-            <div className="flex flex-col items-center justify-center h-full text-center p-8">
-              <div className="w-16 h-16 rounded-xl bg-neutral-100 flex items-center justify-center mx-auto mb-4">
-                <span className="text-h3">📁</span>
-              </div>
-              <p className="text-body font-medium text-neutral-600 mb-1">원본 업로드</p>
-              <p className="text-caption text-neutral-400">Week 6에서 구현됩니다</p>
-            </div>
+            <UploadMode registrationId={registrationId} />
           )}
 
           {tab === 'hybrid' && (
-            <div className="flex flex-col items-center justify-center h-full text-center p-8">
-              <div className="w-16 h-16 rounded-xl bg-neutral-100 flex items-center justify-center mx-auto mb-4">
-                <span className="text-h3">🔀</span>
-              </div>
-              <p className="text-body font-medium text-neutral-600 mb-1">하이브리드 모드</p>
-              <p className="text-caption text-neutral-400">Week 6에서 구현됩니다</p>
-            </div>
+            <HybridMode registrationId={registrationId} />
           )}
         </div>
       </div>
