@@ -91,6 +91,26 @@ function NavItemRow({
 }
 
 export default function Sidebar({ currentPath, onClose }: SidebarProps) {
+  // Extract registrationId if we're inside /register/[id]/...
+  const regMatch = currentPath.match(/^\/register\/([^/]+)\//);
+  const registrationId = regMatch?.[1] ?? null;
+
+  const dynamicTools: NavItem[] = [
+    {
+      label: '도안 스튜디오',
+      href: registrationId ? `/register/${registrationId}/studio` : '#',
+      icon: Image,
+      disabled: !registrationId,
+    },
+    {
+      label: '서류 패키지',
+      href: registrationId ? `/register/${registrationId}/package` : '#',
+      icon: Package,
+      disabled: !registrationId,
+    },
+    { label: '가이드 & FAQ', href: '/guide', icon: BookOpen },
+  ];
+
   return (
     <aside className="w-60 h-screen bg-neutral-50 border-r border-neutral-200 flex flex-col overflow-y-auto">
       {/* Logo */}
@@ -122,7 +142,7 @@ export default function Sidebar({ currentPath, onClose }: SidebarProps) {
 
         {/* Tools */}
         <nav className="flex flex-col gap-0.5">
-          {tools.map((item) => (
+          {dynamicTools.map((item) => (
             <NavItemRow key={item.href + item.label} item={item} currentPath={currentPath} onClick={onClose} />
           ))}
         </nav>

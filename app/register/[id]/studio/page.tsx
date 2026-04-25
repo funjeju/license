@@ -12,7 +12,7 @@ import GenerateMode from '@/components/studio/GenerateMode';
 import UploadMode from '@/components/studio/UploadMode';
 import HybridMode from '@/components/studio/HybridMode';
 import { cn } from '@/lib/utils';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, Package } from 'lucide-react';
 import Link from 'next/link';
 
 interface Registration {
@@ -118,6 +118,22 @@ export default function StudioPage() {
             </button>
           ))}
         </div>
+
+        {/* Package banner */}
+        {registration.progress >= 70 && (
+          <div className="flex-shrink-0 border-b border-jade-100 bg-jade-50 px-4 py-2 flex items-center justify-between">
+            <p className="text-caption text-jade-700 font-medium">
+              필수 정보 {registration.progress}% 완료 — 제출 자료를 패키지로 묶을 수 있습니다.
+            </p>
+            <Link
+              href={`/register/${registrationId}/package`}
+              className="flex items-center gap-1.5 bg-jade text-white text-caption font-medium px-3 py-1.5 rounded-md hover:bg-jade-600 transition-colors"
+            >
+              <Package className="w-3.5 h-3.5" />
+              자료 패키지로 이동
+            </Link>
+          </div>
+        )}
 
         {/* Tab content */}
         <div className="flex-1 overflow-hidden">
