@@ -4,6 +4,8 @@ import { useState } from 'react';
 import { Sparkles, RotateCcw } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import VariantGrid from './VariantGrid';
+import EditPanel from './EditPanel';
+import HistoryChain, { type HistoryNode } from './HistoryChain';
 import { getClientAuth } from '@/lib/firebase/client';
 import type { StyleOption, CompositionOption } from '@/lib/agents/promptComposer';
 
@@ -39,8 +41,12 @@ export default function GenerateMode({ registrationId, extractedFields }: Genera
   const [assetIds, setAssetIds] = useState<string[]>([]);
   const [images, setImages] = useState<Record<string, { base64: string; mimeType: string }>>({});
   const [selectedId, setSelectedId] = useState<string | null>(null);
-  const [sessionId, setSessionId] = useState<string | null>(null);
   const [finalPrompt, setFinalPrompt] = useState('');
+
+  // 히스토리 체인: 선택된 variant에서 편집한 이미지들
+  const [historyByVariant, setHistoryByVariant] = useState<Record<string, HistoryNode[]>>({});
+  // 각 variant별 현재 표시 중인 assetId (편집 후 최신 버전)
+  const [activeEditId, setActiveEditId] = useState<Record<string, string>>({});
 
   async function handleGenerate() {
     setIsGenerating(true);
@@ -48,6 +54,8 @@ export default function GenerateMode({ registrationId, extractedFields }: Genera
     setAssetIds([]);
     setImages({});
     setSelectedId(null);
+    setHistoryByVariant({});
+    setActiveEditId({});
 
     try {
       const auth = getClientAuth();
@@ -59,13 +67,7 @@ export default function GenerateMode({ registrationId, extractedFields }: Genera
           'Content-Type': 'application/json',
           Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify({
-          registrationId,
-          prompt: userPrompt,
-          style,
-          composition,
-          userAddition,
-        }),
+        body: JSON.stringify({ registrationId, prompt: userPrompt, style, composition, userAddition }),
       });
 
       if (!res.ok) {
@@ -75,10 +77,9 @@ export default function GenerateMode({ registrationId, extractedFields }: Genera
 
       const data = await res.json();
       setAssetIds(data.assetIds);
-      setSessionId(data.sessionId);
       setFinalPrompt(data.prompt);
 
-      // asset 레코드에서 base64 이미지 로드 (Firestore 직접 읽기)
+      // Firestore에서 base64 이미지 로드
       const { getClientDb } = await import('@/lib/firebase/client');
       const { collection, query, where, getDocs } = await import('firebase/firestore');
       const db = getClientDb();
@@ -90,12 +91,54 @@ export default function GenerateMode({ registrationId, extractedFields }: Genera
         imgMap[d.id] = { base64: asset.base64, mimeType: asset.mimeType };
       });
       setImages(imgMap);
+
+      // 초기 히스토리 세팅 (원본 variant들)
+      const initHistory: Record<string, HistoryNode[]> = {};
+      const initActive: Record<string, string> = {};
+      data.assetIds.forEach((id: string) => {
+        if (imgMap[id]) {
+          initHistory[id] = [{ assetId: id, base64: imgMap[id].base64, mimeType: imgMap[id].mimeType, label: '원본' }];
+          initActive[id] = id;
+        }
+      });
+      setHistoryByVariant(initHistory);
+      setActiveEditId(initActive);
     } catch (err) {
       setError(err instanceof Error ? err.message : '오류가 발생했습니다');
     } finally {
       setIsGenerating(false);
     }
   }
+
+  function handleEditComplete(variantRootId: string, newAssetId: string, base64: string, mimeType: string) {
+    // 이미지 맵 업데이트
+    setImages((prev) => ({ ...prev, [newAssetId]: { base64, mimeType } }));
+
+    // 히스토리 체인에 새 노드 추가
+    setHistoryByVariant((prev) => {
+      const chain = prev[variantRootId] ?? [];
+      const editCount = chain.filter((n) => n.label !== '원본').length + 1;
+      return {
+        ...prev,
+        [variantRootId]: [...chain, { assetId: newAssetId, base64, mimeType, label: `편집 ${editCount}` }],
+      };
+    });
+
+    // 현재 활성 편집 ID 업데이트
+    setActiveEditId((prev) => ({ ...prev, [variantRootId]: newAssetId }));
+  }
+
+  // VariantGrid에 표시할 이미지: 각 variant의 최신 편집본 우선
+  const displayImages = { ...images };
+  for (const [rootId, editId] of Object.entries(activeEditId)) {
+    if (editId !== rootId && images[editId]) {
+      displayImages[rootId] = images[editId];
+    }
+  }
+
+  // 선택된 variant의 현재 편집 활성 ID
+  const currentEditId = selectedId ? (activeEditId[selectedId] ?? selectedId) : null;
+  const selectedHistory = selectedId ? (historyByVariant[selectedId] ?? []) : [];
 
   return (
     <div className="flex flex-col gap-6 h-full overflow-y-auto px-6 py-6">
@@ -187,21 +230,19 @@ export default function GenerateMode({ registrationId, extractedFields }: Genera
         )}
       </button>
 
-      {error && (
-        <p className="text-caption text-danger text-center">{error}</p>
-      )}
+      {error && <p className="text-caption text-danger text-center">{error}</p>}
 
       {/* Results */}
       {assetIds.length > 0 && (
-        <div>
+        <div className="flex flex-col gap-4">
           {finalPrompt && (
-            <div className="mb-4 p-3 bg-neutral-50 rounded-lg border border-neutral-200">
+            <div className="p-3 bg-neutral-50 rounded-lg border border-neutral-200">
               <p className="text-caption text-neutral-500 mb-1">사용된 프롬프트</p>
               <p className="text-caption text-neutral-700">{finalPrompt}</p>
             </div>
           )}
 
-          <div className="flex items-center justify-between mb-3">
+          <div className="flex items-center justify-between">
             <p className="text-label text-neutral-700">생성 결과 (4 variants)</p>
             <button
               onClick={handleGenerate}
@@ -215,19 +256,23 @@ export default function GenerateMode({ registrationId, extractedFields }: Genera
 
           <VariantGrid
             assetIds={assetIds}
-            images={images}
+            images={displayImages}
             selectedId={selectedId}
             onSelect={setSelectedId}
           />
 
-          {selectedId && (
-            <div className="mt-4 p-3 bg-jade-50 border border-jade-100 rounded-lg">
-              <p className="text-caption text-jade-700 font-medium">
-                Variant {assetIds.indexOf(selectedId) + 1} 선택됨
-              </p>
-              <p className="text-caption text-neutral-500 mt-0.5">
-                이미지 편집은 Week 5에서 구현됩니다
-              </p>
+          {/* 선택된 variant의 편집 패널 */}
+          {selectedId && currentEditId && (
+            <div className="flex flex-col gap-3 mt-2">
+              <HistoryChain
+                nodes={selectedHistory}
+                currentId={currentEditId}
+                onSelect={(id) => setActiveEditId((prev) => ({ ...prev, [selectedId]: id }))}
+              />
+              <EditPanel
+                assetId={currentEditId}
+                onEditComplete={(newId, b64, mime) => handleEditComplete(selectedId, newId, b64, mime)}
+              />
             </div>
           )}
         </div>
