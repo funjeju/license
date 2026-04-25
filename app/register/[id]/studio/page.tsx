@@ -11,6 +11,7 @@ import Sidebar from '@/components/layout/Sidebar';
 import GenerateMode from '@/components/studio/GenerateMode';
 import UploadMode from '@/components/studio/UploadMode';
 import HybridMode from '@/components/studio/HybridMode';
+import SixViewsPanel from '@/components/design/SixViewsPanel';
 import { cn } from '@/lib/utils';
 import { ArrowLeft, Package } from 'lucide-react';
 import Link from 'next/link';
@@ -29,12 +30,17 @@ const IP_TYPE_LABELS: Record<string, string> = {
   patent:    '특허',
 };
 
-type StudioTab = 'generate' | 'upload' | 'hybrid';
+type StudioTab = 'generate' | 'upload' | 'hybrid' | 'sixviews';
 
-const TABS: { value: StudioTab; label: string }[] = [
+const BASE_TABS: { value: StudioTab; label: string }[] = [
   { value: 'generate', label: 'AI 생성' },
   { value: 'upload',   label: '원본 업로드' },
   { value: 'hybrid',   label: '하이브리드' },
+];
+
+const DESIGN_TABS: { value: StudioTab; label: string }[] = [
+  ...BASE_TABS,
+  { value: 'sixviews', label: '6면도 조립' },
 ];
 
 export default function StudioPage() {
@@ -46,10 +52,13 @@ export default function StudioPage() {
   const [registration, setRegistration] = useState<Registration | null>(null);
   const [loading, setLoading] = useState(true);
   const [tab, setTab] = useState<StudioTab>('generate');
+  const [authToken, setAuthToken] = useState('');
 
   useEffect(() => {
     const auth = getClientAuth();
     if (!auth.currentUser) { router.push('/login'); return; }
+
+    auth.currentUser.getIdToken().then(setAuthToken).catch(() => {});
 
     const db = getClientDb();
     const unsub = onSnapshot(
@@ -103,7 +112,7 @@ export default function StudioPage() {
 
         {/* Tab bar */}
         <div className="flex border-b border-neutral-200 px-4 flex-shrink-0">
-          {TABS.map((t) => (
+          {(registration.type === 'design' ? DESIGN_TABS : BASE_TABS).map((t) => (
             <button
               key={t.value}
               onClick={() => setTab(t.value)}
@@ -150,6 +159,15 @@ export default function StudioPage() {
 
           {tab === 'hybrid' && (
             <HybridMode registrationId={registrationId} />
+          )}
+
+          {tab === 'sixviews' && (
+            <div className="flex-1 overflow-y-auto px-6 py-6">
+              <SixViewsPanel
+                registrationId={registrationId}
+                authToken={authToken}
+              />
+            </div>
           )}
         </div>
       </div>

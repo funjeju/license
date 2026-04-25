@@ -11,6 +11,7 @@ import ChatPanel from '@/components/chat/ChatPanel';
 import FormPreview from '@/components/preview/FormPreview';
 import FieldList from '@/components/preview/FieldList';
 import TrademarkPanel from '@/components/trademark/TrademarkPanel';
+import DesignPanel from '@/components/design/DesignPanel';
 import { usePathname } from 'next/navigation';
 import Link from 'next/link';
 import { Wand2 } from 'lucide-react';
@@ -118,6 +119,16 @@ export default function ChatWorkspacePage() {
                   ? (registration.extractedFields.niceClasses as string[])
                   : []
               }
+              authToken={authToken}
+            />
+          </div>
+        ) : registration.type === 'design' ? (
+          <div className="flex-1 overflow-y-auto p-3">
+            <DesignPanel
+              registrationId={registrationId}
+              designTitle={String(registration.extractedFields.designTitle ?? '')}
+              designConcept={String(registration.extractedFields.designConcept ?? '')}
+              articleName={String(registration.extractedFields.articleName ?? '')}
               authToken={authToken}
             />
           </div>
