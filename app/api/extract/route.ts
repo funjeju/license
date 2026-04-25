@@ -6,6 +6,7 @@ import { FieldValue } from 'firebase-admin/firestore';
 import { z } from 'zod';
 import { readFileSync } from 'fs';
 import { join } from 'path';
+import { IP_SCHEMAS } from '@/lib/schemas';
 import type { IPType } from '@/lib/agents/classifier';
 
 const extractorPromptTemplate = readFileSync(
@@ -13,7 +14,6 @@ const extractorPromptTemplate = readFileSync(
   'utf-8'
 );
 
-// 간단한 progress 계산 (IP 유형별 필수 필드 충족률)
 const REQUIRED_COUNTS: Record<IPType, number> = {
   copyright: 6, trademark: 5, design: 4, patent: 6,
 };
@@ -53,7 +53,6 @@ export async function POST(req: NextRequest) {
   const reg = regSnap.data()!;
   const ipType = reg.type as IPType;
 
-  // 최근 메시지 3개 조회
   const messagesSnap = await regRef
     .collection('messages')
     .orderBy('timestamp', 'desc')
@@ -70,10 +69,15 @@ export async function POST(req: NextRequest) {
 
   if (!recentDialog) return NextResponse.json({ updated: [], progress: 0 });
 
+  // IP 유형별 스키마에서 키 목록 추출
+  const ipSchema = IP_SCHEMAS[ipType];
+  const schemaKeys = Object.keys(ipSchema.shape);
+  const schemaDescription = `IP type: ${ipType}\nFields: ${schemaKeys.join(', ')}`;
+
   const systemPrompt = extractorPromptTemplate
     .replace('{ipType}', ipType)
     .replace('{currentFields}', JSON.stringify(reg.extractedFields ?? {}, null, 2))
-    .replace('{schemaDescription}', `IP type: ${ipType}`)
+    .replace('{schemaDescription}', schemaDescription)
     .replace('{recentDialog}', recentDialog);
 
   let delta: Record<string, unknown> = {};
@@ -87,9 +91,9 @@ export async function POST(req: NextRequest) {
       system: systemPrompt,
       prompt: 'Extract fields from the dialog above.',
     });
-    // confidence < 0.5 필드 제거
+    // confidence < 0.5 필드 제거, 스키마에 없는 키 제거
     for (const [key, conf] of Object.entries(object.confidence)) {
-      if ((conf as number) >= 0.5 && object.delta[key] !== undefined) {
+      if ((conf as number) >= 0.5 && object.delta[key] !== undefined && schemaKeys.includes(key)) {
         delta[key] = object.delta[key];
       }
     }

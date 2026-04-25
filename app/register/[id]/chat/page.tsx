@@ -2,28 +2,24 @@
 
 export const dynamic = 'force-dynamic';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { doc, onSnapshot } from 'firebase/firestore';
 import { getClientAuth, getClientDb } from '@/lib/firebase/client';
 import Sidebar from '@/components/layout/Sidebar';
 import ChatPanel from '@/components/chat/ChatPanel';
+import FormPreview from '@/components/preview/FormPreview';
+import FieldList from '@/components/preview/FieldList';
 import { usePathname } from 'next/navigation';
+import type { IPType } from '@/lib/agents/classifier';
 
 interface Registration {
-  type: string;
+  type: IPType;
   title: string;
   status: string;
   progress: number;
   extractedFields: Record<string, unknown>;
 }
-
-const IP_TYPE_LABELS: Record<string, string> = {
-  copyright: '저작권',
-  trademark: '상표',
-  design: '디자인권',
-  patent: '특허',
-};
 
 export default function ChatWorkspacePage() {
   const params = useParams<{ id: string }>();
@@ -33,6 +29,7 @@ export default function ChatWorkspacePage() {
 
   const [registration, setRegistration] = useState<Registration | null>(null);
   const [loading, setLoading] = useState(true);
+  const fieldRefs = useRef<Map<string, HTMLDivElement>>(new Map());
 
   useEffect(() => {
     const auth = getClientAuth();
@@ -70,46 +67,31 @@ export default function ChatWorkspacePage() {
       </div>
 
       {/* ChatPanel */}
-      <div className="flex-1 min-w-0 flex flex-col md:flex-row overflow-hidden">
-        <div className="w-full md:w-[400px] md:min-w-[360px] md:max-w-[480px] flex-shrink-0 h-full border-r border-neutral-200">
-          <ChatPanel
-            registrationId={registrationId}
-            projectTitle={registration.title}
-            ipType={registration.type}
-          />
-        </div>
+      <div className="w-full md:w-[400px] md:min-w-[360px] md:max-w-[480px] flex-shrink-0 h-full border-r border-neutral-200">
+        <ChatPanel
+          registrationId={registrationId}
+          projectTitle={registration.title}
+          ipType={registration.type}
+        />
+      </div>
 
-        {/* FormPreview 영역 — Week 3에서 구현 */}
-        <div className="hidden md:flex flex-1 flex-col items-center justify-center bg-neutral-50 border-r border-neutral-200 p-6">
-          <div className="text-center text-neutral-400">
-            <div className="w-16 h-16 rounded-xl bg-neutral-100 flex items-center justify-center mx-auto mb-4">
-              <span className="text-h3">📄</span>
-            </div>
-            <p className="text-body font-medium text-neutral-600 mb-1">실시간 양식 미리보기</p>
-            <p className="text-caption text-neutral-400">Week 3에서 구현됩니다</p>
-          </div>
-        </div>
+      {/* FormPreview */}
+      <div className="hidden md:flex flex-1 flex-col overflow-hidden border-r border-neutral-200">
+        <FormPreview
+          registrationId={registrationId}
+          ipType={registration.type}
+          fieldRefs={fieldRefs}
+        />
+      </div>
 
-        {/* FieldList 영역 — Week 3에서 구현 */}
-        <div className="hidden 2xl:flex w-[220px] flex-shrink-0 flex-col bg-white border-l border-neutral-200 p-4">
-          <p className="text-h4 text-neutral-900 mb-4">필드 목록</p>
-          <div className="flex-1 flex items-center justify-center">
-            <p className="text-caption text-neutral-400 text-center">Week 3에서<br />구현됩니다</p>
-          </div>
-          <div className="border-t border-neutral-200 pt-3 mt-3">
-            <p className="text-caption text-neutral-500 mb-2">작성 진행률</p>
-            <div className="h-1.5 bg-neutral-200 rounded-full overflow-hidden">
-              <div
-                className="h-full rounded-full transition-all duration-300"
-                style={{
-                  width: `${registration.progress}%`,
-                  backgroundColor: registration.progress >= 80 ? '#22C55E' : '#1E3A8A',
-                }}
-              />
-            </div>
-            <p className="text-h4 text-neutral-900 mt-1">{registration.progress}%</p>
-          </div>
-        </div>
+      {/* FieldList — ≥1440px에서만 표시 */}
+      <div className="hidden 2xl:flex w-[220px] flex-shrink-0 flex-col overflow-hidden">
+        <FieldList
+          ipType={registration.type}
+          fields={registration.extractedFields}
+          progress={registration.progress}
+          fieldRefs={fieldRefs}
+        />
       </div>
     </div>
   );
