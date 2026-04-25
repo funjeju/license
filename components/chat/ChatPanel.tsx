@@ -2,15 +2,14 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { useChat } from '@ai-sdk/react';
-import { DefaultChatTransport } from 'ai';
 import { Send } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { getClientAuth } from '@/lib/firebase/client';
 
 interface ChatPanelProps {
   registrationId: string;
   projectTitle: string;
   ipType: string;
+  authToken: string;
   onFieldsUpdated?: () => void;
 }
 
@@ -35,42 +34,32 @@ function TypingIndicator() {
   );
 }
 
-function getMsgText(msg: { parts: Array<{ type: string; text?: string }> }): string {
-  return msg.parts
-    .filter((p) => p.type === 'text')
-    .map((p) => p.text ?? '')
-    .join('');
+function getMsgText(msg: { content?: string; parts?: Array<{ type: string; text?: string }> }): string {
+  if (msg.parts) {
+    return msg.parts.filter((p) => p.type === 'text').map((p) => p.text ?? '').join('');
+  }
+  return msg.content ?? '';
 }
 
-export default function ChatPanel({ registrationId, projectTitle, ipType, onFieldsUpdated }: ChatPanelProps) {
+export default function ChatPanel({ registrationId, projectTitle, ipType, authToken, onFieldsUpdated }: ChatPanelProps) {
   const bottomRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const [input, setInput] = useState('');
   const msgTimestamps = useRef<Map<string, Date>>(new Map());
 
-  const { messages, sendMessage, status, error } = useChat({
-    transport: new DefaultChatTransport({
-      api: '/api/chat',
-      body: { registrationId },
-      headers: async () => {
-        const auth = getClientAuth();
-        const token = await auth.currentUser?.getIdToken() ?? '';
-        return { Authorization: `Bearer ${token}` };
-      },
-    }),
+  const { messages, append, isLoading, error } = useChat({
+    api: '/api/chat',
+    body: { registrationId },
+    headers: { Authorization: `Bearer ${authToken}` },
     onFinish: () => {
       onFieldsUpdated?.();
     },
   });
 
-  const isStreaming = status === 'streaming';
-
-  // 새 메시지 도착 시 스크롤
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages, isStreaming]);
+  }, [messages, isLoading]);
 
-  // textarea 자동 높이 조절
   function adjustTextarea() {
     const el = textareaRef.current;
     if (!el) return;
@@ -80,6 +69,13 @@ export default function ChatPanel({ registrationId, projectTitle, ipType, onFiel
 
   function formatTime(date: Date) {
     return date.toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' });
+  }
+
+  function handleSend() {
+    const text = input.trim();
+    if (!text || isLoading) return;
+    setInput('');
+    append({ role: 'user', content: text });
   }
 
   return (
@@ -147,7 +143,7 @@ export default function ChatPanel({ registrationId, projectTitle, ipType, onFiel
           );
         })}
 
-        {isStreaming && (
+        {isLoading && (
           <div className="flex justify-start">
             <div className="w-[22px] h-[22px] rounded-full bg-royal-50 border border-royal-100 flex items-center justify-center mr-2 flex-shrink-0 mt-1">
               <span className="text-[11px] font-medium text-royal">AI</span>
@@ -169,16 +165,7 @@ export default function ChatPanel({ registrationId, projectTitle, ipType, onFiel
 
       {/* Input */}
       <div className="h-20 flex-shrink-0 border-t border-neutral-200 px-3 py-2 flex flex-col gap-1">
-        <form
-          onSubmit={(e) => {
-            e.preventDefault();
-            const text = input.trim();
-            if (!text || isStreaming) return;
-            setInput('');
-            sendMessage({ text });
-          }}
-          className="flex items-end gap-2 h-full"
-        >
+        <div className="flex items-end gap-2 h-full">
           <textarea
             ref={textareaRef}
             value={input}
@@ -186,10 +173,7 @@ export default function ChatPanel({ registrationId, projectTitle, ipType, onFiel
             onKeyDown={(e) => {
               if (e.key === 'Enter' && !e.shiftKey) {
                 e.preventDefault();
-                const text = input.trim();
-                if (!text || isStreaming) return;
-                setInput('');
-                sendMessage({ text });
+                handleSend();
               }
             }}
             placeholder="메시지 입력... (Shift+Enter: 줄바꿈)"
@@ -197,17 +181,17 @@ export default function ChatPanel({ registrationId, projectTitle, ipType, onFiel
             className="flex-1 resize-none bg-transparent text-body text-neutral-900 placeholder:text-neutral-400 focus:outline-none min-h-[44px] max-h-[120px] py-2.5"
             style={{ height: '44px' }}
             aria-label="메시지 입력"
-            aria-live="polite"
           />
           <button
-            type="submit"
-            disabled={!input.trim() || isStreaming}
+            type="button"
+            onClick={handleSend}
+            disabled={!input.trim() || isLoading}
             className="w-9 h-9 bg-royal rounded-md flex items-center justify-center flex-shrink-0 hover:bg-royal-600 transition-colors disabled:opacity-40 active:scale-[0.98]"
             aria-label="전송"
           >
             <Send className="w-4 h-4 text-white" />
           </button>
-        </form>
+        </div>
         <p className="text-caption text-neutral-500 text-center">
           AI는 참고 자료를 제공하며, 법적 자문이 아닙니다.
         </p>

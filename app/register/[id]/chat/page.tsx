@@ -72,6 +72,7 @@ export default function ChatWorkspacePage() {
           registrationId={registrationId}
           projectTitle={registration.title}
           ipType={registration.type}
+          authToken={authToken}
         />
       </div>
 
