@@ -1,6 +1,6 @@
 import { NextRequest } from 'next/server';
 import { streamText } from 'ai';
-import { anthropic } from '@ai-sdk/anthropic';
+import { anthropic } from '@/lib/ai/providers';
 import { adminAuth, adminDb } from '@/lib/firebase/admin';
 import { FieldValue } from 'firebase-admin/firestore';
 import { buildInterviewerSystem } from '@/lib/agents/interviewer';

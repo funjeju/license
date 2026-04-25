@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { generateObject } from 'ai';
-import { anthropic } from '@ai-sdk/anthropic';
+import { anthropic } from '@/lib/ai/providers';
 import { adminAuth, adminDb } from '@/lib/firebase/admin';
 import { FieldValue } from 'firebase-admin/firestore';
 import { z } from 'zod';

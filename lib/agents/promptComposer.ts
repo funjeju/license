@@ -1,5 +1,5 @@
 import { generateText } from 'ai';
-import { google } from '@ai-sdk/google';
+import { google } from '@/lib/ai/providers';
 import { readFileSync } from 'fs';
 import { join } from 'path';
 

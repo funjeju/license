@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { adminAuth } from '@/lib/firebase/admin';
 import { generateObject } from 'ai';
-import { anthropic } from '@ai-sdk/anthropic';
+import { anthropic } from '@/lib/ai/providers';
 import { z } from 'zod';
 import { LOCARNO_CLASSES, LOCARNO_MAP } from '@/lib/data/locarno-classes';
 

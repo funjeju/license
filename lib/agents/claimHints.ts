@@ -1,5 +1,5 @@
 import { generateObject } from 'ai';
-import { anthropic } from '@ai-sdk/anthropic';
+import { anthropic } from '@/lib/ai/providers';
 import { z } from 'zod';
 
 const ComponentSchema = z.object({
