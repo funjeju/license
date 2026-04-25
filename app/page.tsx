@@ -25,7 +25,7 @@ export default function LandingPage() {
           <Button variant="ghost" asChild className="text-neutral-700">
             <Link href="/login">로그인</Link>
           </Button>
-          <Button asChild className="bg-royal text-white hover:bg-royal-600">
+          <Button asChild className="bg-royal !text-white hover:bg-royal-600">
             <Link href="/signup">무료로 시작하기</Link>
           </Button>
         </div>
@@ -39,7 +39,7 @@ export default function LandingPage() {
         <p className="text-body-lg text-neutral-700 mb-10 max-w-lg mx-auto">
           저작권·상표·디자인·특허 등록에 필요한 모든 서류를 AI와의 대화로 완성하세요. 전문 지식 없이도 직접 제출까지.
         </p>
-        <Button asChild size="lg" className="bg-royal text-white hover:bg-royal-600 h-12 px-8 text-body-lg">
+        <Button asChild size="lg" className="bg-royal !text-white hover:bg-royal-600 h-12 px-8 text-body-lg">
           <Link href="/signup">
             지금 시작하기
             <ArrowRight className="ml-2 w-5 h-5" />
