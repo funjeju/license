@@ -10,11 +10,17 @@ import {
   updateProfile,
   GoogleAuthProvider,
   signInWithPopup,
+  type User,
 } from 'firebase/auth';
 import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
 import { auth, db } from '@/lib/firebase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+
+async function setSessionCookie(user: User) {
+  const token = await user.getIdToken();
+  document.cookie = `session=${token}; path=/; max-age=3600; SameSite=Lax`;
+}
 
 export default function SignupPage() {
   const router = useRouter();
@@ -37,6 +43,7 @@ export default function SignupPage() {
         createdAt: serverTimestamp(),
         preferences: { defaultLanguage: 'ko', notificationsEnabled: true },
       });
+      await setSessionCookie(user);
       router.push('/dashboard');
     } catch (err: unknown) {
       if (err && typeof err === 'object' && 'code' in err && err.code === 'auth/email-already-in-use') {
@@ -64,6 +71,7 @@ export default function SignupPage() {
         createdAt: serverTimestamp(),
         preferences: { defaultLanguage: 'ko', notificationsEnabled: true },
       }, { merge: true });
+      await setSessionCookie(user);
       router.push('/dashboard');
     } catch {
       setError('구글 회원가입 중 문제가 발생했습니다.');
@@ -125,7 +133,7 @@ export default function SignupPage() {
             <p className="text-caption text-danger">{error}</p>
           )}
 
-          <Button type="submit" disabled={loading} className="w-full bg-royal text-white hover:bg-royal-600">
+          <Button type="submit" disabled={loading} className="w-full bg-royal !text-white hover:bg-royal-600">
             {loading ? '가입 중...' : '가입하기'}
           </Button>
         </form>

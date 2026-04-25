@@ -9,10 +9,16 @@ import {
   signInWithEmailAndPassword,
   GoogleAuthProvider,
   signInWithPopup,
+  type User,
 } from 'firebase/auth';
 import { auth } from '@/lib/firebase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+
+async function setSessionCookie(user: User) {
+  const token = await user.getIdToken();
+  document.cookie = `session=${token}; path=/; max-age=3600; SameSite=Lax`;
+}
 
 export default function LoginPage() {
   const router = useRouter();
@@ -26,7 +32,8 @@ export default function LoginPage() {
     setError('');
     setLoading(true);
     try {
-      await signInWithEmailAndPassword(auth, email, password);
+      const { user } = await signInWithEmailAndPassword(auth, email, password);
+      await setSessionCookie(user);
       router.push('/dashboard');
     } catch {
       setError('이메일 또는 비밀번호를 다시 확인해주세요.');
@@ -40,7 +47,8 @@ export default function LoginPage() {
     setLoading(true);
     try {
       const provider = new GoogleAuthProvider();
-      await signInWithPopup(auth, provider);
+      const { user } = await signInWithPopup(auth, provider);
+      await setSessionCookie(user);
       router.push('/dashboard');
     } catch {
       setError('구글 로그인 중 문제가 발생했습니다.');
@@ -88,7 +96,7 @@ export default function LoginPage() {
             <p className="text-caption text-danger">{error}</p>
           )}
 
-          <Button type="submit" disabled={loading} className="w-full bg-royal text-white hover:bg-royal-600">
+          <Button type="submit" disabled={loading} className="w-full bg-royal !text-white hover:bg-royal-600">
             {loading ? '로그인 중...' : '로그인'}
           </Button>
         </form>
