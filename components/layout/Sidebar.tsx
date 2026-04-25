@@ -15,6 +15,7 @@ import {
   BookOpen,
   Settings,
   LogOut,
+  ScrollText,
 } from 'lucide-react';
 
 interface NavItem {
@@ -95,11 +96,19 @@ export default function Sidebar({ currentPath, onClose }: SidebarProps) {
   const regMatch = currentPath.match(/^\/register\/([^/]+)\//);
   const registrationId = regMatch?.[1] ?? null;
 
+  const isPatentPath = currentPath.includes('/claims');
+
   const dynamicTools: NavItem[] = [
     {
       label: '도안 스튜디오',
       href: registrationId ? `/register/${registrationId}/studio` : '#',
       icon: Image,
+      disabled: !registrationId,
+    },
+    {
+      label: '청구범위 추천',
+      href: registrationId ? `/register/${registrationId}/claims` : '#',
+      icon: ScrollText,
       disabled: !registrationId,
     },
     {
@@ -110,6 +119,7 @@ export default function Sidebar({ currentPath, onClose }: SidebarProps) {
     },
     { label: '가이드 & FAQ', href: '/guide', icon: BookOpen },
   ];
+  void isPatentPath;
 
   return (
     <aside className="w-60 h-screen bg-neutral-50 border-r border-neutral-200 flex flex-col overflow-y-auto">

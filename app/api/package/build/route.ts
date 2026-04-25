@@ -242,6 +242,71 @@ async function buildGuideDocx(ipType: IPType): Promise<Buffer> {
   return Packer.toBuffer(doc);
 }
 
+interface SuggestedClaimDoc {
+  scope: string;
+  recommended?: boolean;
+  text: string;
+  rationale?: string;
+  risks?: string[];
+  attorneyQuestions?: string[];
+}
+
+const SCOPE_LABEL: Record<string, string> = {
+  broad: '넓은 범위 (A)',
+  medium: '중간 범위 (B) — 추천',
+  narrow: '좁은 범위 (C)',
+};
+
+async function buildClaimsDocx(claims: SuggestedClaimDoc[]): Promise<Buffer> {
+  const children: Paragraph[] = [
+    new Paragraph({
+      children: [new TextRun({ text: '청구범위 추천안', bold: true, size: 32 })],
+      alignment: AlignmentType.CENTER,
+    }),
+    new Paragraph({
+      children: [new TextRun({ text: '※ 이 문서는 AI가 작성한 초안입니다. 반드시 변리사 검토 후 활용하세요.', color: 'B45309', size: 20 })],
+      alignment: AlignmentType.CENTER,
+      spacing: { after: 400 },
+    }),
+  ];
+
+  for (const claim of claims) {
+    children.push(
+      new Paragraph({
+        children: [new TextRun({ text: SCOPE_LABEL[claim.scope] ?? claim.scope, bold: true, size: 26 })],
+        heading: HeadingLevel.HEADING_2,
+        spacing: { before: 400, after: 120 },
+      }),
+    );
+    children.push(
+      new Paragraph({
+        children: [new TextRun({ text: claim.text, size: 22 })],
+        spacing: { after: 200 },
+      }),
+    );
+    if (claim.rationale) {
+      children.push(
+        new Paragraph({ children: [new TextRun({ text: `[선택 이유] ${claim.rationale}`, color: '374151' })] }),
+      );
+    }
+    if (claim.risks?.length) {
+      children.push(new Paragraph({ children: [new TextRun({ text: '[위험 요소]', bold: true })], spacing: { before: 160 } }));
+      for (const risk of claim.risks) {
+        children.push(new Paragraph({ children: [new TextRun({ text: `• ${risk}` })], indent: { left: 360 } }));
+      }
+    }
+    if (claim.attorneyQuestions?.length) {
+      children.push(new Paragraph({ children: [new TextRun({ text: '[변리사에게 물어볼 점]', bold: true })], spacing: { before: 160 } }));
+      for (const q of claim.attorneyQuestions) {
+        children.push(new Paragraph({ children: [new TextRun({ text: `• ${q}` })], indent: { left: 360 } }));
+      }
+    }
+  }
+
+  const doc = new Document({ sections: [{ children }] });
+  return Packer.toBuffer(doc);
+}
+
 // ── 메인 라우트 ────────────────────────────────────────────────────────────
 
 export async function POST(req: NextRequest) {
@@ -274,6 +339,7 @@ export async function POST(req: NextRequest) {
   const ipType = reg.type as IPType;
   const extractedFields = (reg.extractedFields ?? {}) as Record<string, unknown>;
   const title = reg.title ?? '미제목';
+  const suggestedClaims = Array.isArray(reg.suggestedClaims) ? reg.suggestedClaims : [];
 
   // 에셋 조회
   const assetsSnap = await adminDb
@@ -309,10 +375,18 @@ export async function POST(req: NextRequest) {
 
   // ZIP 번들
   const zip = new JSZip();
-  zip.file('01_저작물설명.docx', explainBuf);
+  zip.file('01_명세서초안.docx', explainBuf);
   zip.file('02_도면.docx', drawingBuf);
   zip.file('03_대화록.docx', chatBuf);
   zip.file('04_제출가이드.docx', guideBuf);
+
+  // 특허: 청구범위 추천안 추가
+  const fileNames = ['01_명세서초안.docx', '02_도면.docx', '03_대화록.docx', '04_제출가이드.docx'];
+  if (ipType === 'patent' && suggestedClaims.length > 0) {
+    const claimsBuf = await buildClaimsDocx(suggestedClaims as SuggestedClaimDoc[]);
+    zip.file('05_청구범위추천안.docx', claimsBuf);
+    fileNames.push('05_청구범위추천안.docx');
+  }
 
   const zipBuffer = await zip.generateAsync({ type: 'nodebuffer', compression: 'DEFLATE' });
 
@@ -341,13 +415,13 @@ export async function POST(req: NextRequest) {
     storagePath,
     packageUrl,
     expiresAt: new Date(expiresAt),
-    fileNames: ['01_저작물설명.docx', '02_도면.docx', '03_대화록.docx', '04_제출가이드.docx'],
+    fileNames,
     createdAt: now,
   });
 
   return NextResponse.json({
     packageUrl,
     expiresAt,
-    fileNames: ['01_저작물설명.docx', '02_도면.docx', '03_대화록.docx', '04_제출가이드.docx'],
+    fileNames,
   });
 }
