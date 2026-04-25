@@ -6,8 +6,7 @@ import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { doc, onSnapshot, updateDoc } from 'firebase/firestore';
 import { getClientAuth, getClientDb } from '@/lib/firebase/client';
-import { usePathname } from 'next/navigation';
-import Sidebar from '@/components/layout/Sidebar';
+import WorkspaceShell from '@/components/layout/WorkspaceShell';
 import { cn } from '@/lib/utils';
 import {
   Loader2, AlertTriangle, ChevronDown, ChevronUp,
@@ -38,7 +37,6 @@ const SCOPE_COLORS: Record<string, string> = {
 export default function ClaimsPage() {
   const params = useParams<{ id: string }>();
   const router = useRouter();
-  const pathname = usePathname();
   const registrationId = params.id;
 
   const [registration, setRegistration] = useState<Registration | null>(null);
@@ -113,11 +111,7 @@ export default function ClaimsPage() {
   const claims = registration.suggestedClaims ?? [];
 
   return (
-    <div className="flex h-screen overflow-hidden bg-white">
-      <div className="hidden md:block flex-shrink-0">
-        <Sidebar currentPath={pathname} />
-      </div>
-
+    <WorkspaceShell>
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
         {/* Header */}
         <div className="h-14 flex items-center gap-3 px-4 border-b border-neutral-200 flex-shrink-0">
@@ -326,6 +320,6 @@ export default function ClaimsPage() {
           )}
         </div>
       </div>
-    </div>
+    </WorkspaceShell>
   );
 }

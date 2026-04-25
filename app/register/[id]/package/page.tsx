@@ -6,12 +6,12 @@ import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { doc, onSnapshot } from 'firebase/firestore';
 import { getClientAuth, getClientDb } from '@/lib/firebase/client';
-import { usePathname } from 'next/navigation';
-import Sidebar from '@/components/layout/Sidebar';
+import WorkspaceShell from '@/components/layout/WorkspaceShell';
+import AttorneyReferralModal from '@/components/dashboard/AttorneyReferralModal';
 import { cn } from '@/lib/utils';
 import {
   FileText, Download, Package, ArrowLeft,
-  CheckCircle2, ExternalLink, Loader2, AlertCircle,
+  CheckCircle2, ExternalLink, Loader2, AlertCircle, Mail,
 } from 'lucide-react';
 import Link from 'next/link';
 import type { IPType } from '@/lib/agents/classifier';
@@ -107,7 +107,6 @@ const KIPRIS_STEPS = [
 export default function PackagePage() {
   const params = useParams<{ id: string }>();
   const router = useRouter();
-  const pathname = usePathname();
   const registrationId = params.id;
 
   const [registration, setRegistration] = useState<Registration | null>(null);
@@ -116,6 +115,7 @@ export default function PackagePage() {
   const [packageUrl, setPackageUrl] = useState<string | null>(null);
   const [fileNames, setFileNames] = useState<string[]>([]);
   const [error, setError] = useState<string | null>(null);
+  const [referralOpen, setReferralOpen] = useState(false);
 
   useEffect(() => {
     const auth = getClientAuth();
@@ -178,11 +178,16 @@ export default function PackagePage() {
   const guideName = registration.type === 'copyright' ? 'CROSS (저작권 등록 시스템)' : 'e-특허넷 (특허청)';
 
   return (
-    <div className="flex h-screen overflow-hidden bg-white">
-      <div className="hidden md:block flex-shrink-0">
-        <Sidebar currentPath={pathname} />
-      </div>
-
+    <WorkspaceShell>
+      {referralOpen && registration && (
+        <AttorneyReferralModal
+          registrationId={registrationId}
+          projectTitle={registration.title}
+          ipType={registration.type}
+          packageUrl={packageUrl}
+          onClose={() => setReferralOpen(false)}
+        />
+      )}
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
         {/* Header */}
         <div className="h-14 flex items-center gap-3 px-4 border-b border-neutral-200 flex-shrink-0">
@@ -326,8 +331,28 @@ export default function PackagePage() {
               ))}
             </div>
           </div>
+          {/* Attorney referral CTA */}
+          {packageUrl && (
+            <div className="mt-8 border-t border-neutral-200 pt-6">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 px-4 py-4 bg-royal-50 border border-royal-100 rounded-2xl">
+                <div>
+                  <p className="text-body font-semibold text-royal-900 mb-1">변리사에게 바로 의뢰하기</p>
+                  <p className="text-caption text-royal-700">
+                    이 패키지를 변리사에게 이메일로 전달해 검토를 의뢰할 수 있습니다.
+                  </p>
+                </div>
+                <button
+                  onClick={() => setReferralOpen(true)}
+                  className="flex items-center gap-2 px-4 py-2.5 bg-royal text-white rounded-xl text-caption font-medium hover:bg-royal-700 transition-colors flex-shrink-0"
+                >
+                  <Mail className="w-4 h-4" />
+                  변리사 의뢰 이메일 보내기
+                </button>
+              </div>
+            </div>
+          )}
         </div>
       </div>
-    </div>
+    </WorkspaceShell>
   );
 }

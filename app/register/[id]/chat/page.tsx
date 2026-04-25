@@ -6,13 +6,12 @@ import { useEffect, useRef, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { doc, onSnapshot } from 'firebase/firestore';
 import { getClientAuth, getClientDb } from '@/lib/firebase/client';
-import Sidebar from '@/components/layout/Sidebar';
+import WorkspaceShell from '@/components/layout/WorkspaceShell';
 import ChatPanel from '@/components/chat/ChatPanel';
 import FormPreview from '@/components/preview/FormPreview';
 import FieldList from '@/components/preview/FieldList';
 import TrademarkPanel from '@/components/trademark/TrademarkPanel';
 import DesignPanel from '@/components/design/DesignPanel';
-import { usePathname } from 'next/navigation';
 import Link from 'next/link';
 import { Wand2, ScrollText } from 'lucide-react';
 import type { IPType } from '@/lib/agents/classifier';
@@ -28,7 +27,6 @@ interface Registration {
 export default function ChatWorkspacePage() {
   const params = useParams<{ id: string }>();
   const router = useRouter();
-  const pathname = usePathname();
   const registrationId = params.id;
 
   const [registration, setRegistration] = useState<Registration | null>(null);
@@ -67,12 +65,7 @@ export default function ChatWorkspacePage() {
   if (!registration) return null;
 
   return (
-    <div className="flex h-screen overflow-hidden bg-white">
-      {/* Sidebar (데스크톱만) */}
-      <div className="hidden md:block flex-shrink-0">
-        <Sidebar currentPath={pathname} />
-      </div>
-
+    <WorkspaceShell>
       {/* ChatPanel */}
       <div className="w-full md:w-[400px] md:min-w-[360px] md:max-w-[480px] flex-shrink-0 h-full border-r border-neutral-200">
         <ChatPanel
@@ -151,6 +144,6 @@ export default function ChatWorkspacePage() {
           />
         )}
       </div>
-    </div>
+    </WorkspaceShell>
   );
 }
