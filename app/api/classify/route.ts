@@ -14,8 +14,10 @@ export async function POST(req: NextRequest) {
     const token = authHeader.slice(7);
     const decoded = await adminAuth.verifyIdToken(token);
     uid = decoded.uid;
-  } catch {
-    return NextResponse.json({ error: 'Invalid token' }, { status: 401 });
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    console.error('[classify] token verify failed:', msg);
+    return NextResponse.json({ error: 'Invalid token', detail: msg }, { status: 401 });
   }
 
   const { userMessage } = await req.json();
