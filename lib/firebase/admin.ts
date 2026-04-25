@@ -16,7 +16,20 @@ function getAdminApp(): admin.app.App {
   });
 }
 
-export const adminApp = getAdminApp();
-export const adminAuth = admin.auth(adminApp);
-export const adminDb = admin.firestore(adminApp);
-export const adminStorage = admin.storage(adminApp);
+export const adminAuth = new Proxy({} as admin.auth.Auth, {
+  get(_, prop) {
+    return (admin.auth(getAdminApp()) as unknown as Record<string | symbol, unknown>)[prop];
+  },
+});
+
+export const adminDb = new Proxy({} as admin.firestore.Firestore, {
+  get(_, prop) {
+    return (admin.firestore(getAdminApp()) as unknown as Record<string | symbol, unknown>)[prop];
+  },
+});
+
+export const adminStorage = new Proxy({} as admin.storage.Storage, {
+  get(_, prop) {
+    return (admin.storage(getAdminApp()) as unknown as Record<string | symbol, unknown>)[prop];
+  },
+});
