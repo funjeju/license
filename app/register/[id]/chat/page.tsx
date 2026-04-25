@@ -11,6 +11,8 @@ import ChatPanel from '@/components/chat/ChatPanel';
 import FormPreview from '@/components/preview/FormPreview';
 import FieldList from '@/components/preview/FieldList';
 import { usePathname } from 'next/navigation';
+import Link from 'next/link';
+import { Wand2 } from 'lucide-react';
 import type { IPType } from '@/lib/agents/classifier';
 
 interface Registration {
@@ -82,6 +84,21 @@ export default function ChatWorkspacePage() {
           ipType={registration.type}
           fieldRefs={fieldRefs}
         />
+        {/* 스튜디오 이동 배너 */}
+        {registration.progress >= 70 && (
+          <div className="flex-shrink-0 border-t border-jade-100 bg-jade-50 px-4 py-2.5 flex items-center justify-between">
+            <p className="text-caption text-jade-700 font-medium">
+              필수 정보 {registration.progress}% 작성 완료
+            </p>
+            <Link
+              href={`/register/${registrationId}/studio`}
+              className="flex items-center gap-1.5 bg-jade text-white text-caption font-medium px-3 py-1.5 rounded-md hover:bg-jade-600 transition-colors"
+            >
+              <Wand2 className="w-3.5 h-3.5" />
+              도안 스튜디오로 이동
+            </Link>
+          </div>
+        )}
       </div>
 
       {/* FieldList — ≥1440px에서만 표시 */}
